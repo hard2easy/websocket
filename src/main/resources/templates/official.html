@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+          name="viewport">
+    <meta content="ie=edge" http-equiv="X-UA-Compatible">
+    <title>客服的页面</title>
+</head>
+<body>
+<pre id="hi">
+</pre>
+<input placeholder="主题" type="text">
+<input placeholder="内容" type="text">
+<button onclick="send()" type="button">发送</button>
+</body>
+<script>
+    let websocket = null;
+    // 用来保留客户信息用的
+    let LData = {};
+    //判断当前浏览器是否支持WebSocket
+    if ('WebSocket' in window) {
+        websocket = new WebSocket("ws://localhost:8080/ws/a");
+    } else {
+        alert('当前浏览器不支持\n请更换浏览器');
+    }
+
+    //发送消息
+    function send() {
+        let ins = document.getElementsByTagName("input");
+        LData['theme'] = ins[0].value;
+        LData['content'] = ins[1].value;
+        console.log(LData);
+        websocket.send(JSON.stringify(LData));
+    }
+
+    //接收到消息的回调方法
+    websocket.onmessage = function (event) {
+        let data = event.data;
+        console.log("收到："+data);
+        if ("{" === data.substr(0, 1)) {
+            LData = JSON.parse(data);
+            console.table(LData);
+            document.getElementById("hi").innerHTML += LData['theme'] + '----' + LData['content'] + '\n';
+        } else {
+            document.getElementById("hi").innerHTML += data + '\n';
+        }
+    };
+
+    //连接成功建立的回调方法
+    websocket.onopen = function () {
+        console.log("onopen...");
+    };
+
+    //连接关闭的回调方法
+    websocket.onclose = function () {
+        console.log("onclose...");
+    };
+
+    //连接发生错误的回调方法
+    websocket.onerror = function () {
+        alert("连接服务器失败，请刷新页面重试")
+    };
+
+    //监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
+    window.onbeforeunload = function () {
+        closeWebSocket();
+    };
+
+    //关闭WebSocket连接
+    function closeWebSocket() {
+        websocket.close();
+    }
+</script>
+</html>
